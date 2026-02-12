@@ -1,8 +1,3 @@
-📘 README.md - PENJELASAN DETAIL CARA PENGGUNAAN APLIKASI
-
-Berikut adalah file README.md lengkap dengan penjelasan DETAIL cara penggunaan aplikasi dari awal sampai akhir:
-
-```markdown
 # 🎤 DeepSeek TTS - Voice Assistant Bahasa Indonesia
 
 <p align="center">
