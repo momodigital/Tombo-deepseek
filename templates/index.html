@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a237e">
+    
+    <title>DeepSeek TTS - Voice Assistant Indonesia</title>
+    
+    <style>
+        /* RESET & VARIABLES */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+
+        :root {
+            --primary: #1a237e;
+            --primary-light: #534bae;
+            --primary-dark: #000051;
+            --accent: #00bcd4;
+            --bg: #f5f7fa;
+            --user-msg: #1a237e;
+            --ai-msg: white;
+            --text-light: #ffffff;
+            --text-dark: #263238;
+        }
+
+        body {
+            background: var(--primary-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 12px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER */
+        .app-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .app-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-title h1 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        /* CHAT AREA */
+        .chat-container {
+            flex: 1;
+            background: var(--bg);
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            width: 100%;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 80%;
+            padding: 14px 18px;
+            border-radius: 22px;
+            position: relative;
+            word-wrap: break-word;
+            font-size: 15px;
+            line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .user .bubble {
+            background: var(--user-msg);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .ai .bubble {
+            background: var(--ai-msg);
+            color: var(--text-dark);
+            border-bottom-left-radius: 5px;
+        }
+
+        .speaker-btn {
+            background: none;
+            border: none;
+            margin-left: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .user .speaker-btn {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .ai .speaker-btn {
+            color: var(--primary);
+        }
+
+        .speaker-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .speaker-btn.playing {
+            animation: pulse 1s infinite;
+            color: #2196f3;
+        }
+
+        /* INPUT AREA */
+        .input-area {
+            background: white;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            background: #f0f2f5;
+            border-radius: 24px;
+            padding: 4px 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        #messageInput {
+            width: 100%;
+            padding: 12px 0;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 16px;
+        }
+
+        .mic-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #f0f2f5;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-btn:active {
+            transform: scale(0.9);
+        }
+
+        .mic-btn.listening {
+            background: #f44336;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        #sendBtn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sendBtn:active {
+            transform: scale(0.9);
+            background: var(--primary-light);
+        }
+
+        #sendBtn.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* TYPING INDICATOR */
+        .typing {
+            display: none;
+            align-items: center;
+            gap: 5px;
+            padding: 12px 18px;
+            background: white;
+            border-radius: 22px;
+            border-bottom-left-radius: 5px;
+            width: fit-content;
+        }
+
+        .typing span {
+            width: 8px;
+            height: 8px;
+            background: #90a4ae;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes typing {
+            0%, 100% { opacity: 0.3; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-5px); }
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #90a4ae;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* UTILS */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <div class="app-header">
+            <div class="app-title">
+                <span style="font-size: 24px;">🎙️</span>
+                <h1>DeepSeek Voice</h1>
+            </div>
+            <div class="status-indicator" id="statusIndicator"></div>
+        </div>
+
+        <!-- CHAT CONTAINER -->
+        <div class="chat-container" id="chatContainer">
+            <!-- Welcome Message -->
+            <div class="message ai">
+                <div class="bubble">
+                    Halo! Saya asisten AI DeepSeek. Bisa bicara langsung atau ketik. Ada yang bisa saya bantu?
+                    <button class="speaker-btn" onclick="speakText('Halo! Saya asisten AI DeepSeek. Bisa bicara langsung atau ketik. Ada yang bisa saya bantu?')">🔊</button>
+                </div>
+            </div>
+            
+            <!-- Typing Indicator -->
+            <div class="typing" id="typingIndicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <!-- INPUT AREA -->
+        <div class="input-area">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Ketik pesan atau tekan 🎤" 
+                    autocomplete="off"
+                    onkeypress="handleKeyPress(event)"
+                >
+            </div>
+            <button class="mic-btn" id="micBtn" onclick="startVoiceInput()">🎤</button>
+            <button id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        // ============== VARIABLES ==============
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const micBtn = document.getElementById('micBtn');
+        let audioPlayer = new Audio();
+        let recognition = null;
+
+        // ============== VOICE RECOGNITION SETUP ==============
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            
+            // SETTING BAHASA INDONESIA! 🇮🇩
+            recognition.lang = 'id-ID';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            // KETIKA DAPAT HASIL SUARA
+            recognition.onresult = function(event) {
+                const speechToText = event.results[0][0].transcript;
+                messageInput.value = speechToText;
+                stopVoiceAnimation();
+                // OTOMATIS KIRIM PESAN
+                setTimeout(() => sendMessage(), 500);
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Voice error:', event.error);
+                stopVoiceAnimation();
+                
+                let errorMessage = 'Terjadi kesalahan. ';
+                if (event.error === 'not-allowed') {
+                    errorMessage = 'Izin mic belum diberikan. Izinkan akses mic di browser!';
+                } else if (event.error === 'no-speech') {
+                    errorMessage = 'Tidak ada suara yang terdeteksi. Coba lagi.';
+                } else if (event.error === 'network') {
+                    errorMessage = 'Koneksi tidak stabil. Cek internet Anda.';
+                }
+                
+                alert('🎤 ' + errorMessage);
+            };
+
+            recognition.onend = function() {
+                stopVoiceAnimation();
+            };
+        } else {
+            console.log('Browser tidak mendukung voice recognition');
+            micBtn.style.opacity = '0.5';
+            micBtn.disabled = true;
+            micBtn.title = 'Voice input tidak didukung browser ini';
+        }
+
+        // ============== FUNGSI VOICE INPUT ==============
+        function startVoiceInput() {
+            if (recognition) {
+                try {
+                    recognition.start();
+                    startVoiceAnimation();
+                } catch (e) {
+                    console.log('Recognition already started');
+                }
+            } else {
+                alert('Browser Anda tidak mendukung voice input. Gunakan Chrome/Edge di Android!');
+            }
+        }
+
+        function startVoiceAnimation() {
+            micBtn.classList.add('listening');
+            micBtn.style.animation = 'pulse 1s infinite';
+        }
+
+        function stopVoiceAnimation() {
+            micBtn.classList.remove('listening');
+            micBtn.style.animation = '';
+        }
+
+        // ============== FUNGSI CHAT ==============
+        function handleKeyPress(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Clear input
+            messageInput.value = '';
+            
+            // Add user message
+            addMessage(message, 'user');
+            
+            // Show typing indicator
+            typingIndicator.style.display = 'flex';
+            scrollToBottom();
+            
+            // Disable input
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.classList.add('disabled');
+
+            try {
+                // Send to DeepSeek
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+
+                // Hide typing indicator
+                typingIndicator.style.display = 'none';
+
+                if (data.success) {
+                    addMessage(data.response, 'ai');
+                    
+                    // Auto-speak AI response
+                    setTimeout(() => {
+                        speakText(data.response);
+                    }, 300);
+                } else {
+                    addMessage('Maaf, terjadi kesalahan. Coba lagi ya!', 'ai');
+                    console.error('Error:', data.error);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                typingIndicator.style.display = 'none';
+                addMessage('Maaf, koneksi bermasalah. Pastikan server aktif!', 'ai');
+            } finally {
+                // Enable input
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('disabled');
+                messageInput.focus();
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            
+            // Escape text untuk keamanan
+            const escapedText = text.replace(/&/g, '&amp;')
+                                   .replace(/</g, '&lt;')
+                                   .replace(/>/g, '&gt;')
+                                   .replace(/"/g, '&quot;')
+                                   .replace(/'/g, '&#039;');
+            
+            // Split text by lines and add line breaks
+            const formattedText = escapedText.replace(/\n/g, '<br>');
+            bubble.innerHTML = formattedText;
+            
+            // Add speaker button for AI messages
+            if (sender === 'ai') {
+                const speakerBtn = document.createElement('button');
+                speakerBtn.className = 'speaker-btn';
+                speakerBtn.innerHTML = '🔊';
+                speakerBtn.onclick = () => speakText(text);
+                bubble.appendChild(speakerBtn);
+            }
+            
+            messageDiv.appendChild(bubble);
+            
+            // Insert before typing indicator
+            chatContainer.insertBefore(messageDiv, typingIndicator);
+            scrollToBottom();
+        }
+
+        // ============== TEXT TO SPEECH ==============
+        async function speakText(text) {
+            try {
+                // Animasi tombol speaker
+                const speakerBtns = document.querySelectorAll('.speaker-btn');
+                speakerBtns.forEach(btn => btn.classList.add('playing'));
+                
+                const response = await fetch('/speak', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if (!response.ok) throw new Error('TTS failed');
+                
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                
+                audioPlayer.src = url;
+                await audioPlayer.play();
+                
+                audioPlayer.onended = () => {
+                    URL.revokeObjectURL(url);
+                    speakerBtns.forEach(btn => btn.classList.remove('playing'));
+                };
+                
+            } catch (error) {
+                console.error('TTS Error:', error);
+                alert('Gagal memutar suara. Pastikan server aktif!');
+                
+                const speakerBtns = document.querySelectorAll('.speaker-btn');
+                speakerBtns.forEach(btn => btn.classList.remove('playing'));
+            }
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Focus input on load
+        window.onload = () => {
+            messageInput.focus();
+        };
+    </script>
+</body>
+</html>
